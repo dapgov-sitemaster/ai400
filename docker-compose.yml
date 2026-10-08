@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai402
+      POSTGRES_USER: ai402
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai402 -d ai402"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - backend
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATABASE_URL: postgresql://ai402:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/ai402
+      APP_SESSION_SECRET: ${APP_SESSION_SECRET:?Set APP_SESSION_SECRET in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Run pnpm setup:admin to configure ADMIN_EMAIL}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Run pnpm setup:admin to configure ADMIN_PASSWORD_HASH}
+      UPLOAD_DIR: /var/lib/ai402/uploads
+    volumes:
+      - applicant_uploads:/var/lib/ai402/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SITE_HOST: ${SITE_HOST:?Set SITE_HOST to your public domain in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - backend
+      - edge
+
+networks:
+  backend:
+    internal: true
+  edge:
+
+volumes:
+  postgres_data:
+  applicant_uploads:
+  caddy_data:
+  caddy_config:

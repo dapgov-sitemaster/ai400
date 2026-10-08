@@ -1,0 +1,17 @@
+minimumReleaseAge: 10080
+minimumReleaseAgeIgnoreMissingTime: false
+trustLockfile: false
+strictDepBuilds: true
+virtualStoreDir: .pn
+allowBuilds:
+  esbuild: true
+  fsevents: true
+  sharp: true
+  unrs-resolver: true
+storeDir: .pnpm-store
+cacheDir: .pnpm-store/policy-cache
+enableGlobalVirtualStore: false
+# Reuse store files with clones or hardlinks before falling back to copies.
+packageImportMethod: auto
+verifyDepsBeforeRun: false
+optimisticRepeatInstall: false

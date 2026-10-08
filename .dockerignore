@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+node_modules
+.pn
+.pnpm-store
+.vinext
+dist
+data
+coverage
+*.log
